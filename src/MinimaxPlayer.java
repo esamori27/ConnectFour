@@ -15,14 +15,14 @@
  */
 public class MinimaxPlayer extends DefaultPlayer {
 
-//----------------------------------------------
+  // ----------------------------------------------
   // instance variables
 
   // the number of levels minimax will look ahead
   private int depth = 1;
   private Player minPlayer;
 
-//----------------------------------------------
+  // ----------------------------------------------
   // constructors
 
   /** Creates new MinimaxPlayer */
@@ -32,7 +32,7 @@ public class MinimaxPlayer extends DefaultPlayer {
     this.minPlayer = minPlayer;
   }
 
-//----------------------------------------------
+  // ----------------------------------------------
   // instance methods
 
   /**
@@ -72,7 +72,7 @@ public class MinimaxPlayer extends DefaultPlayer {
  */
 final class MinimaxCalculator {
 
-//-------------------------------------------------------
+  // -------------------------------------------------------
   // instance variables
 
   // the number of moves we have tried
@@ -86,7 +86,7 @@ final class MinimaxCalculator {
   private final int MAX_POSSIBLE_STRENGTH;
   private final int MIN_POSSIBLE_STRENGTH;
 
-//-------------------------------------------------------
+  // -------------------------------------------------------
   // constructors
   MinimaxCalculator(Board b, Player max, Player min) {
     board = b;
@@ -97,7 +97,7 @@ final class MinimaxCalculator {
     MIN_POSSIBLE_STRENGTH = board.getBoardStats().getMinStrength();
   }
 
-//-------------------------------------------------------
+  // -------------------------------------------------------
   // instance methods
 
   /**
@@ -113,20 +113,24 @@ final class MinimaxCalculator {
     }
 
     Move[] moves = board.getPossibleMoves(maxPlayer);
-    int maxStrength = MIN_POSSIBLE_STRENGTH;
     int maxIndex = 0;
+
+    int alpha = MIN_POSSIBLE_STRENGTH;
+    int beta  = MAX_POSSIBLE_STRENGTH;
 
     for (int i = 0; i < moves.length; i++) {
       if (board.move(moves[i])) {
         moveCount++;
 
-        int strength = expandMinNode(depth - 1, maxStrength);
-        if (strength > maxStrength) {
-          maxStrength = strength;
+        int strength = expandMinNodeDeep(depth - 1, alpha, beta);
+        if (strength > alpha) {
+          alpha = strength;
           maxIndex = i;
         }
         board.undoLastMove();
       } // end if move made
+
+      if (alpha >= beta) break;
 
       // if the thread has been interrupted, return immediately.
       if (Thread.currentThread().isInterrupted()) {
@@ -217,5 +221,51 @@ final class MinimaxCalculator {
     return minStrength;
 
   }// end expandMaxNode
+
+  private int expandMaxNodeDeep(int depth, int alpha, int beta) {
+    if (depth == 0 || board.isGameOver()) {
+      return board.getBoardStats().getStrength(maxPlayer);
+    }
+
+    for (Move m : board.getPossibleMoves(maxPlayer)) {
+      if (board.move(m)) {
+        moveCount++;
+        int score = expandMinNodeDeep(depth - 1, alpha, beta);
+        board.undoLastMove();
+
+        if (score > alpha) {
+          alpha = score;
+        }
+
+        if (alpha >= beta) {
+          return alpha;
+        }
+      }
+    }
+    return alpha;
+  }
+
+  private int expandMinNodeDeep(int depth, int alpha, int beta) {
+    if (depth == 0 || board.isGameOver()) {
+      return board.getBoardStats().getStrength(maxPlayer);
+    }
+
+    for (Move m : board.getPossibleMoves(minPlayer)) {
+      if (board.move(m)) {
+        moveCount++;
+        int score = expandMaxNodeDeep(depth - 1, alpha, beta);
+        board.undoLastMove();
+
+        if (score < beta) {
+          beta = score;
+        }
+
+        if (beta <= alpha) {
+            return beta;
+          }
+      }
+    }
+    return beta;
+  }
 
 }
